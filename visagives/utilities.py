@@ -3,26 +3,22 @@ import json
 import sys, os
 import datetime
 
-def callApi():
-    date=datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-    cert=os.path.abspath("./certs/cert.pem")
-    key=os.path.abspath("./certs/key_test.pem")
+date=datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+cert=os.path.abspath("./certs/cert.pem")
+key=os.path.abspath("./certs/key_test.pem")
+headers={"Accept": "application/json"}
 
-    headers={"Accept": "application/json"}
+user_id='H5T2QIDG2IJOP7L6M1W221bkXTIK_ghOLL4FpzeNLid4v8Mcc'
+password='qcgUdXX24YCZENvm54u0kzCk'
+timeout=10
 
-    user_id='H5T2QIDG2IJOP7L6M1W221bkXTIK_ghOLL4FpzeNLid4v8Mcc'
-    password='qcgUdXX24YCZENvm54u0kzCk'
-
-    body={}
-
-    timeout=10
-
+def pullFunds(amount, senderPrimaryAccountNumber, senderCardExpiryDate):
     pullFundsUrl='https://sandbox.api.visa.com/visadirect/fundstransfer/v1/pullfundstransactions'
     pullFundsPayload=json.loads('''
     {
     "acquirerCountryCode": "840",
     "acquiringBin": "408999",
-    "amount": "124.02",
+    "amount": "'''+amount+'''",
     "businessApplicationId": "AA",
     "cardAcceptor": {
     "address": {
@@ -39,9 +35,9 @@ def callApi():
     "foreignExchangeFeeTransaction": "11.99",
     "localTransactionDateTime": "'''+date+'''",
     "retrievalReferenceNumber": "330000550000",
-    "senderCardExpiryDate": "2015-10",
+    "senderCardExpiryDate": "'''+senderCardExpiryDate+'''",
     "senderCurrencyCode": "USD",
-    "senderPrimaryAccountNumber": "4895142232120006",
+    "senderPrimaryAccountNumber": "'''+senderPrimaryAccountNumber+'''",
     "surcharge": "11.99",
     "systemsTraceAuditNumber": "451001",
     "nationalReimbursementFee": "11.22",
@@ -75,7 +71,7 @@ def callApi():
     }
     ''')
 
-    r = requests.post(pullFundsUrl,
+    response = requests.post(pullFundsUrl,
                     #   verify = ('put the CA certificate pem file path here'),
     				  cert = (cert,key),
     				  headers = headers,
@@ -84,17 +80,24 @@ def callApi():
                       json=pullFundsPayload,
                       timeout=timeout
                     )
+    responseBody = json.loads(response.text)
+    print('PULL FUNDS RESPONSE')
+    print('------------------')
+    print(responseBody)
+    print('------------------')
+    if responseBody['actionCode'] != '00':
+        return 'ERROR'
+    else:
+        return responseBody['transactionIdentifier']
 
-    print(r.text)
-
-
+def pushFunds(transactionId, amount, senderPrimaryAccountNumber, senderCardExpiryDate, recipientPrimaryAccountNumber, recipientCardExpiryDate):
     pushFundsUrl='https://sandbox.api.visa.com/visadirect/fundstransfer/v1/pushfundstransactions'
 
     pushFundsPayload=json.loads('''
     {
     "acquirerCountryCode": "840",
     "acquiringBin": "408999",
-    "amount": "124.05",
+    "amount": "'''+amount+'''",
     "businessApplicationId": "AA",
     "cardAcceptor": {
     "address": {
@@ -115,9 +118,10 @@ def callApi():
     "posConditionCode": "00"
     },
     "recipientName": "rohan",
-    "recipientPrimaryAccountNumber": "4957030420210496",
+    "recipientPrimaryAccountNumber": "'''+recipientPrimaryAccountNumber+'''",
+    "recipientCardExpiryDate": "'''+recipientCardExpiryDate+'''",
     "retrievalReferenceNumber": "412770451018",
-    "senderAccountNumber": "4653459515756154",
+    "senderAccountNumber": "'''+senderPrimaryAccountNumber+'''",
     "senderAddress": "901 Metro Center Blvd",
     "senderCity": "Foster City",
     "senderCountryCode": "124",
@@ -127,7 +131,7 @@ def callApi():
     "sourceOfFundsCode": "05",
     "systemsTraceAuditNumber": "451018",
     "transactionCurrencyCode": "USD",
-    "transactionIdentifier": "381228649430015",
+    "transactionIdentifier": "'''+transactionId+'''",
     "settlementServiceIndicator": "9",
     "colombiaNationalServiceData": {
     "countryCodeNationalService": "170",
@@ -145,7 +149,7 @@ def callApi():
     }
     ''')
 
-    r = requests.post(pushFundsUrl,
+    response = requests.post(pushFundsUrl,
                     #   verify = ('put the CA certificate pem file path here'),
     				  cert = (cert,key),
     				  headers = headers,
@@ -154,10 +158,16 @@ def callApi():
                       json=pushFundsPayload,
                       timeout=timeout
                     )
+    responseBody = json.loads(response.text)
+    print('PUSH FUNDS RESPONSE')
+    print('------------------')
+    print(responseBody)
+    print('------------------')
+    if responseBody['actionCode'] != '00':
+        return 'ERROR'
 
-    print(r.text)
 
-
+def reverseFunds(transactionIdentifier, amount, senderPrimaryAccountNumber, senderCardExpiryDate):
     reverseFundsUrl='https://sandbox.api.visa.com/visadirect/fundstransfer/v1/reversefundstransactions'
 
     reverseFundsPayload=json.loads('''
@@ -166,7 +176,7 @@ def callApi():
     "acquirerCountryCode": "608",
     "acquiringBin": "408999",
     "businessApplicationId": "AA",
-    "amount": "24.01",
+    "amount": "'''+amount+'''",
     "cardAcceptor": {
     "address": {
     "country": "USA",
@@ -195,11 +205,11 @@ def callApi():
     "posConditionCode": "00"
     },
     "retrievalReferenceNumber": "330000550000",
-    "senderCardExpiryDate": "2015-10",
+    "senderCardExpiryDate": "'''+senderCardExpiryDate+'''",
     "senderCurrencyCode": "USD",
-    "senderPrimaryAccountNumber": "4895100000055127",
+    "senderPrimaryAccountNumber": "'''+senderPrimaryAccountNumber+'''",
     "systemsTraceAuditNumber": "451050",
-    "transactionIdentifier": "381228649430011",
+    "transactionIdentifier": "'''+transactionIdentifier+'''",
     "settlementServiceIndicator": "9",
     "colombiaNationalServiceData": {
     "countryCodeNationalService": "170",
@@ -217,9 +227,7 @@ def callApi():
     }
     ''')
 
-
-
-    r = requests.post(reverseFundsUrl,
+    response = requests.post(reverseFundsUrl,
                     #   verify = ('put the CA certificate pem file path here'),
     				  cert = (cert,key),
     				  headers = headers,
@@ -229,4 +237,8 @@ def callApi():
                       timeout=timeout
                     )
 
-    print(r.text)
+    responseBody = json.loads(response.text)
+    print('REVERSE FUNDS RESPONSE')
+    print('------------------')
+    print(responseBody)
+    print('------------------')
