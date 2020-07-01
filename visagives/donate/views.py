@@ -32,7 +32,7 @@ def index(request):
         senderCardExpiryDate
     )
     if transactionId == 'ERROR':
-        return HttpResponseNotFound("Bad Request")
+        return HttpResponseNotFound("BAD REQUEST")
     response = pushFunds(
         str(transactionId),
         amount,
@@ -48,5 +48,5 @@ def index(request):
             senderPrimaryAccountNumber,
             senderCardExpiryDate,
         )
-        return HttpResponseNotFound("Bad Request")
-    return HttpResponse("Success")
+        return HttpResponseNotFound("BAD REQUEST")
+    return HttpResponse("SUCCESS")
